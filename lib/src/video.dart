@@ -21,23 +21,24 @@ typedef VideoCallback<T> = void Function(T t);
 /// 视频组件
 class AwsomeVideoPlayer extends StatefulWidget {
   AwsomeVideoPlayer(
-    this.dataSource, {
-    Key key,
-    VideoPlayOptions playOptions,
-    VideoStyle videoStyle,
-    this.children,
-    this.oninit,
-    this.onplay,
-    this.onpause,
-    this.ontimeupdate,
-    this.onprogressdrag,
-    this.onended,
-    this.onvolume,
-    this.onbrightness,
-    this.onnetwork,
-    this.onfullscreen,
-    this.onpop,
-  })  : playOptions = playOptions ?? VideoPlayOptions(),
+      this.dataSource, {
+        Key key,
+        VideoPlayOptions playOptions,
+        VideoStyle videoStyle,
+        this.children,
+        this.oninit,
+        this.onplay,
+        this.onpause,
+        this.ontimeupdate,
+        this.onprogressdrag,
+        this.onended,
+        this.onvolume,
+        this.onbrightness,
+        this.onnetwork,
+        this.onfullscreen,
+        this.onpop,
+        this.isLandscape = false,
+      })  : playOptions = playOptions ?? VideoPlayOptions(),
         videoStyle = videoStyle ?? VideoStyle(),
         super(key: key);
 
@@ -48,6 +49,9 @@ class AwsomeVideoPlayer extends StatefulWidget {
   final VideoPlayOptions playOptions;
   final VideoStyle videoStyle;
   final List<Widget> children;
+
+  ///是否要开启全屏展示
+  final bool isLandscape;
 
   /// 初始化完成回调事件
   final VideoCallback<VideoPlayerController> oninit;
@@ -95,7 +99,7 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
   Animation<double> controlBottomBarAnimation;
 
   /// 是否全屏
-  bool fullscreened = false;
+  bool fullscreened = false;//
   bool initialized = false;
 
   /// 屏幕亮度
@@ -122,19 +126,18 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
   @override
   void initState() {
     super.initState();
-
     /// 控制拦动画
     controlBarAnimationController = AnimationController(
         duration: const Duration(milliseconds: 300), vsync: this);
     controlTopBarAnimation = Tween(
-            begin: -(widget.videoStyle.videoTopBarStyle.height +
-                widget.videoStyle.videoTopBarStyle.margin.vertical * 2),
-            end: 0.0)
+        begin: -(widget.videoStyle.videoTopBarStyle.height +
+            widget.videoStyle.videoTopBarStyle.margin.vertical * 2),
+        end: 0.0)
         .animate(controlBarAnimationController);
     controlBottomBarAnimation = Tween(
-            begin: -(widget.videoStyle.videoTopBarStyle.height +
-                widget.videoStyle.videoControlBarStyle.margin.vertical * 2),
-            end: 0.0)
+        begin: -(widget.videoStyle.videoTopBarStyle.height +
+            widget.videoStyle.videoControlBarStyle.margin.vertical * 2),
+        end: 0.0)
         .animate(controlBarAnimationController);
 
     var widgetsBinding = WidgetsBinding.instance;
@@ -155,7 +158,7 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
         if (_fullscreen != fullscreened) {
           setState(() {
             fullscreened = !fullscreened;
-            _navigateLocally(context);
+//            _navigateLocally(context);
             //触发全屏事件
             if (widget.onfullscreen != null) {
               widget.onfullscreen(fullscreened);
@@ -176,13 +179,22 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
         widget.onnetwork(result.toString().split('.')[1]);
       }
     });
+    ///判断 是否需要全屏播放
+    if(widget.isLandscape){
+      ///运行设备横屏
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }else{
+      ///运行设备竖屏
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
 
-    ///运行设备横竖屏
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
     // 常亮
     Screen.keepOn(true);
 
@@ -207,11 +219,14 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
     controller.dispose();
 
     ///竖屏
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+//    SystemChrome.setPreferredOrientations([
+//      DeviceOrientation.portraitUp,
+//    ]);
     Screen.keepOn(false);
     subscription.cancel();
+
+
+
     super.dispose();
   }
 
@@ -266,9 +281,9 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
               var strPosition = oPosition.toString().split('.')[0];
               var strDuration = oDuration.toString().split('.')[0];
               position =
-                  "${strPosition.split(':')[1]}:${strPosition.split(':')[2]}";
+              "${strPosition.split(':')[1]}:${strPosition.split(':')[2]}";
               duration =
-                  "${strDuration.split(':')[1]}:${strDuration.split(':')[2]}";
+              "${strDuration.split(':')[1]}:${strDuration.split(':')[2]}";
             } else {
               position = oPosition.toString().split('.')[0];
               duration = oDuration.toString().split('.')[0];
@@ -333,6 +348,15 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
   /// 点击全屏或取消
   void toggleFullScreen() {
     if (fullscreened) {
+      OrientationPlugin.forceOrientation(DeviceOrientation.portraitUp);
+    } else {
+      OrientationPlugin.forceOrientation(DeviceOrientation.landscapeRight);
+    }
+  }
+
+  /// 点击全屏或取消
+  void FullScreen() {
+    if (widget.isLandscape) {
       OrientationPlugin.forceOrientation(DeviceOrientation.portraitUp);
     } else {
       OrientationPlugin.forceOrientation(DeviceOrientation.landscapeRight);
@@ -464,9 +488,9 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
               allowScrubbing: widget.playOptions.allowScrubbing,
               onprogressdrag: widget.onprogressdrag,
               padding:
-                  widget.videoStyle.videoControlBarStyle.progressStyle.padding,
+              widget.videoStyle.videoControlBarStyle.progressStyle.padding,
               progressStyle:
-                  widget.videoStyle.videoControlBarStyle.progressStyle),
+              widget.videoStyle.videoControlBarStyle.progressStyle),
         ),
       ),
 
@@ -477,7 +501,7 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
           child: VideoDefaultProgressBar(controller,
               allowScrubbing: widget.playOptions.allowScrubbing,
               progressStyle:
-                  widget.videoStyle.videoControlBarStyle.progressStyle),
+              widget.videoStyle.videoControlBarStyle.progressStyle),
         ),
       ),
       "time": Padding(
@@ -536,88 +560,88 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
       /// 顶部控制拦
       widget.videoStyle.videoTopBarStyle.show
           ? VideoTopBar(
-              animation: controlTopBarAnimation,
-              videoTopBarStyle: widget.videoStyle.videoTopBarStyle,
-              videoControlBarStyle: widget.videoStyle.videoControlBarStyle,
-              onpop: () {
-                if (fullscreened) {
-                  toggleFullScreen();
-                } else {
-                  if (widget.onpop != null) {
-                    widget.onpop(null);
-                  }
-                }
-              })
+          animation: controlTopBarAnimation,
+          videoTopBarStyle: widget.videoStyle.videoTopBarStyle,
+          videoControlBarStyle: widget.videoStyle.videoControlBarStyle,
+          onpop: () {
+            if (fullscreened) {
+              toggleFullScreen();
+            } else {
+              if (widget.onpop != null) {
+                widget.onpop(null);
+              }
+            }
+          })
           : Align(),
 
       /// 是否显示播放按钮
       widget.videoStyle.showPlayIcon &&
-              initialized &&
-              (!controller.value.isPlaying && !isEnded) &&
-              !isBuffing
+          initialized &&
+          (!controller.value.isPlaying && !isEnded) &&
+          !isBuffing
           ? Align(
-              alignment: Alignment.center,
-              child: GestureDetector(
-                onTap: () {
-                  if (!controller.value.isPlaying) {
-                    togglePlay();
-                  }
-                },
-                child: widget.videoStyle.playIcon,
-              ),
-            )
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            if (!controller.value.isPlaying) {
+              togglePlay();
+            }
+          },
+          child: widget.videoStyle.playIcon,
+        ),
+      )
           : Text(""),
 
       /// 是否显示重播按钮
       initialized && isEnded
           ? Align(
-              alignment: Alignment.center,
-              child: GestureDetector(
-                onTap: () {
-                  isEnded = false;
-                  updateDataSource();
-                  controller.play();
-                },
-                child: widget.videoStyle.replayIcon,
-              ),
-            )
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            isEnded = false;
+            updateDataSource();
+            controller.play();
+          },
+          child: widget.videoStyle.replayIcon,
+        ),
+      )
           : Text(""),
 
       /// 主字幕
       widget.videoStyle.videoSubtitlesStyle.mianTitle != null
           ? widget.videoStyle.videoSubtitlesStyle.mianTitle
           : Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(10, 0, 10, 30),
-                child: Text("",
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: widget
-                            .videoStyle.videoSubtitlesStyle.mainTitleColor,
-                        fontSize: widget
-                            .videoStyle.videoSubtitlesStyle.mainTitleFontSize)),
-              ),
-            ),
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(10, 0, 10, 30),
+          child: Text("",
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: widget
+                      .videoStyle.videoSubtitlesStyle.mainTitleColor,
+                  fontSize: widget
+                      .videoStyle.videoSubtitlesStyle.mainTitleFontSize)),
+        ),
+      ),
 
       /// 辅字幕
       widget.videoStyle.videoSubtitlesStyle.subTitle != null
           ? widget.videoStyle.videoSubtitlesStyle.subTitle
           : Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                padding: EdgeInsets.all(10),
-                child: Text("",
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color:
-                            widget.videoStyle.videoSubtitlesStyle.subTitleColor,
-                        fontSize: widget
-                            .videoStyle.videoSubtitlesStyle.subTitleFontSize)),
-              ),
-            ),
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          padding: EdgeInsets.all(10),
+          child: Text("",
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color:
+                  widget.videoStyle.videoSubtitlesStyle.subTitleColor,
+                  fontSize: widget
+                      .videoStyle.videoSubtitlesStyle.subTitleFontSize)),
+        ),
+      ),
 
       /// 底部控制拦
       VideoBottomBar(
@@ -639,7 +663,7 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
     final videoChildrens = <Widget>[
       /// 视频区域
       GestureDetector(
-          //点击
+        //点击
           onTap: () {
             //显示或隐藏菜单栏和进度条
             toggleControls();
@@ -669,9 +693,9 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
             controller.seekTo(Duration(
                 milliseconds: details.primaryDelta > 0
                     ? currentPosition.inMilliseconds +
-                        widget.playOptions.progressGestureUnit
+                    widget.playOptions.progressGestureUnit
                     : currentPosition.inMilliseconds -
-                        widget.playOptions.progressGestureUnit));
+                    widget.playOptions.progressGestureUnit));
           },
           onHorizontalDragEnd: (DragEndDetails details) {
             if (!controller.value.isPlaying) {
@@ -734,15 +758,15 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
           ///视频播放器
           child: ClipRect(
               child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.black,
-            child: Center(
-                child: AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
-              child: VideoPlayer(controller),
-            )),
-          ))),
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black,
+                child: Center(
+                    child: AspectRatio(
+                      aspectRatio: controller.value.aspectRatio,
+                      child: VideoPlayer(controller),
+                    )),
+              ))),
 
       ///控制拦以及(可拓展)元素
     ];
@@ -765,14 +789,16 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
   }
 
   void _navigateLocally(context) async {
-    if (!fullscreened) {
-      if (ModalRoute.of(context).willHandlePopInternally) {
-        Navigator.of(context).pop();
-      }
-      return;
-    }
-    ModalRoute.of(context).addLocalHistoryEntry(LocalHistoryEntry(onRemove: () {
-      if (fullscreened) toggleFullScreen();
-    }));
+    Navigator.of(context).pop();
+//    if (!fullscreened) {
+//      if (ModalRoute.of(context).willHandlePopInternally) {
+//        Navigator.of(context).pop();
+//      }
+//      return;
+//    }
+//    ModalRoute.of(context).addLocalHistoryEntry(LocalHistoryEntry(onRemove: () {
+//      if (fullscreened) toggleFullScreen();
+//    }));
+
   }
 }
